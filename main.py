@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 DB_CONFIG = {
     "host": "localhost",
     "user": "root",
-    "password": "yourpassword",
+    "password": "",
     "database": "dog_data"
 }
 
