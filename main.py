@@ -1,19 +1,22 @@
 import mysql.connector
 import requests
 import pandas as pd
+import matplotlib.pyplot as plt
+import pymysql
+
 
 # Database config
 DB_CONFIG = {
-    'user': 'root',
-    'password': '', 
-    'host': 'localhost',
+    'user': 'teamdog',
+    'password': 'teamdog',
+    'host': '64.23.196.47',
     'database': 'dog_data' 
 }
 
 # Connect to the database
 def connect_to_db():
     """Establishes a database connection."""
-    return mysql.connector.connect(**DB_CONFIG)
+    return pymysql.connect(**DB_CONFIG)
 
 # Function to create tables if they don't exist
 def create_tables():
@@ -95,8 +98,8 @@ def insert_data():
     conn.close()
 
 # Function to analyze the data (e.g., finding average lifespan per breed)
-def analyze_data():
-    """Analyzes lifespan data from the database."""
+def analyze_and_plot_data():
+    """Fetches data from the database and plots life expectancy vs breed."""
     conn = connect_to_db()
     cursor = conn.cursor()
 
@@ -112,8 +115,23 @@ def analyze_data():
     result = cursor.fetchall()
     df = pd.DataFrame(result, columns=['Breed Name', 'Average Min Lifespan', 'Average Max Lifespan'])
 
-    # Print the result
-    print(df)
+    # Calculate the average lifespan as the midpoint between min and max
+    df['Average Lifespan'] = (df['Average Min Lifespan'] + df['Average Max Lifespan']) / 2
+
+    # Sort dataframe by average lifespan for better visualization
+    df = df.sort_values(by='Average Lifespan', ascending=True)
+
+    # Plot the data
+    plt.figure(figsize=(12, 6))
+    plt.barh(df['Breed Name'], df['Average Lifespan'], color='skyblue')
+    plt.xlabel('Average Lifespan (Years)')
+    plt.ylabel('Breed Name')
+    plt.title('Average Lifespan of Dog Breeds')
+    plt.grid(axis='x', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
 
     cursor.close()
     conn.close()
@@ -121,4 +139,4 @@ def analyze_data():
 if __name__ == "__main__":
     create_tables()  # Ensure tables are created
     insert_data()    # Insert data from API into the database
-    analyze_data()   # Perform the analysis on the data
+    analyze_and_plot_data()   # Perform the analysis on the data
