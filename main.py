@@ -73,7 +73,7 @@ def insert_data():
     for dog in dog_data:
         breed_name = dog['name']
         breed_age = dog.get('life_span', '0').split()[0]  # Extract the first number in the life_span
-        breed_group = dog.get('group', 'Unknown')
+        breed_group = dog.get('breed_group', 'Unknown')
 
         # Insert breed data into breed table
         cursor.execute('''
@@ -85,7 +85,7 @@ def insert_data():
 
         # Insert lifespan data into lifespan table (with the associated breed_id)
         lifespan = dog.get('life_span', '').split()  # should read like: '12 - 14 years'
-        if len(lifespan) == 3:  # Check if we have a valid lifespan range
+        if len(lifespan) == 4:  # Check if we have a valid lifespan range
             min_lifespan = int(lifespan[0])
             max_lifespan = int(lifespan[2].replace('years', '').strip())  # Clean 'years'
             cursor.execute('''
@@ -97,13 +97,13 @@ def insert_data():
     cursor.close()
     conn.close()
 
-# Function to analyze the data (e.g., finding average lifespan per breed)
+# Analyzing and plotting data into graphs
 def analyze_and_plot_data():
-    """Fetches data from the database and plots life expectancy vs breed."""
+    """Fetches data from the database and plots the 30 longest and 30 shortest living breeds."""
     conn = connect_to_db()
     cursor = conn.cursor()
 
-    # Query to get breed names and avg lifespans
+    # Query tables to get breed names and lifespans
     cursor.execute('''
         SELECT breed.breed_name, AVG(lifespan.min_lifespan) AS avg_min_lifespan, AVG(lifespan.max_lifespan) AS avg_max_lifespan
         FROM breed
@@ -111,26 +111,38 @@ def analyze_and_plot_data():
         GROUP BY breed.breed_name
     ''')
 
-    # Fetch the results and load them into Pandas
+    # Fetch results, load into pandas
     result = cursor.fetchall()
     df = pd.DataFrame(result, columns=['Breed Name', 'Average Min Lifespan', 'Average Max Lifespan'])
 
-    # Calculate the average lifespan as the midpoint between min and max
+    # Calculate the average lifespan as the midpoint between min and max years
     df['Average Lifespan'] = (df['Average Min Lifespan'] + df['Average Max Lifespan']) / 2
 
-    # Sort dataframe by average lifespan for better visualization
-    df = df.sort_values(by='Average Lifespan', ascending=True)
+    # Sort by lifespan
+    df_sorted = df.sort_values(by='Average Lifespan', ascending=True)
 
-    # Plot the data
+    shortest_living = df_sorted.head(30)
+
+    longest_living = df_sorted.tail(30)
+
+    # Graph shortest living breeds
     plt.figure(figsize=(12, 6))
-    plt.barh(df['Breed Name'], df['Average Lifespan'], color='skyblue')
+    plt.barh(shortest_living['Breed Name'], shortest_living['Average Lifespan'], color='blue')
     plt.xlabel('Average Lifespan (Years)')
     plt.ylabel('Breed Name')
-    plt.title('Average Lifespan of Dog Breeds')
+    plt.title('Top 30 Shortest-Living Dog Breeds')
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     plt.tight_layout()
+    plt.show(block=False) #This block allows 2nd graph to show without having to close the first
 
-    # Show the plot
+    # Graph longest living breeds
+    plt.figure(figsize=(12, 6))
+    plt.barh(longest_living['Breed Name'], longest_living['Average Lifespan'], color='green')
+    plt.xlabel('Average Lifespan (Years)')
+    plt.ylabel('Breed Name')
+    plt.title('Top 30 Longest-Living Dog Breeds')
+    plt.grid(axis='x', linestyle='--', alpha=0.7)
+    plt.tight_layout()
     plt.show()
 
     cursor.close()
